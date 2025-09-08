@@ -1,9 +1,39 @@
-name: CI Test
+name: LLM Patch
+
 on:
   workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "GitHub Issue number"
+        required: true
+        type: string
+
 jobs:
-  build-and-test:
+  gen-and-apply:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: make hello
+
+      - name: Show repo tree
+        run: |
+          echo "== repo tree ==" && git ls-files
+
+      - name: Generate patch from issue
+        run: |
+          mkdir -p patches
+          python3 scripts/llm.py "${{ inputs.issue_number }}" > "patches/issue-${{ inputs.issue_number }}.patch"
+          echo "== patch head ==" && head -n 40 "patches/issue-${{ inputs.issue_number }}.patch"
+
+      - name: Apply patch (no dry-run)
+        run: |
+          git config user.name "llm-bot"
+          git config user.email "llm-bot@example.com"
+          git apply --index "patches/issue-${{ inputs.issue_number }}.patch"
+          git status --porcelain
+          git diff --name-only --cached
+
+      - name: Upload patch artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "issue-${{ inputs.issue_number }}-patch"
+          path: "patches/issue-${{ inputs.issue_number }}.patch"
