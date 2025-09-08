@@ -11,6 +11,11 @@ on:
 jobs:
   gen-and-apply:
     runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}          # ← これが必須
+      GH_REPO:  ${{ github.repository }} 
+      
     steps:
       - uses: actions/checkout@v4
 
